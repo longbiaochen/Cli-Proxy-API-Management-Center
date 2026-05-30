@@ -19,6 +19,7 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useVisualConfig } from '@/hooks/useVisualConfig';
 import { useNotificationStore, useAuthStore, useThemeStore, useConfigStore } from '@/stores';
 import { configFileApi } from '@/services/api/configFile';
+import { uiMetaApi, type UiMetaApiKeyRecord } from '@/services/api/uiMeta';
 import styles from './ConfigPage.module.scss';
 
 type ConfigEditorTab = 'visual' | 'source';
@@ -35,12 +36,62 @@ function readCommercialModeFromYaml(yamlContent: string): boolean {
   }
 }
 
+function extractApiKeysFromYaml(yamlContent: string): string[] {
+  try {
+    const parsed = parseYaml(yamlContent);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return [];
+    const root = parsed as Record<string, unknown>;
+    const direct = root['api-keys'];
+    if (!Array.isArray(direct)) return [];
+    return direct
+      .map((item) => {
+        if (typeof item === 'string') return item.trim();
+        if (item && typeof item === 'object') {
+          const record = item as Record<string, unknown>;
+          return String(record['api-key'] || record.apiKey || record.key || '').trim();
+        }
+        return '';
+      })
+      .filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function reconcileMetadataForKeys(
+  keys: string[],
+  records: UiMetaApiKeyRecord[]
+): UiMetaApiKeyRecord[] {
+  const recordMap = new Map(records.filter((record) => record.key).map((record) => [record.key, record]));
+  const activeSet = new Set(keys);
+  const result: UiMetaApiKeyRecord[] = [];
+
+  keys.forEach((key) => {
+    const existing = recordMap.get(key);
+    result.push({
+      key,
+      alias: existing?.alias || '',
+      owner: existing?.owner || '',
+      active: true,
+    });
+  });
+
+  records.forEach((record) => {
+    if (activeSet.has(record.key)) return;
+    result.push({ ...record, active: false });
+  });
+
+  return result;
+}
+
 export function ConfigPage() {
   const { t } = useTranslation();
   const pageTransitionLayer = usePageTransitionLayer();
   const isCurrentLayer = pageTransitionLayer ? pageTransitionLayer.isCurrentLayer : true;
   const showNotification = useNotificationStore((state) => state.showNotification);
   const showConfirmation = useNotificationStore((state) => state.showConfirmation);
+  const apiBase = useAuthStore((state) => state.apiBase);
+  const managementKey = useAuthStore((state) => state.managementKey);
   const connectionStatus = useAuthStore((state) => state.connectionStatus);
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const isMobile = useMediaQuery('(max-width: 768px)');
@@ -70,6 +121,9 @@ export function ConfigPage() {
   const [diffModalOpen, setDiffModalOpen] = useState(false);
   const [serverYaml, setServerYaml] = useState('');
   const [mergedYaml, setMergedYaml] = useState('');
+  const [apiKeyMetadata, setApiKeyMetadata] = useState<UiMetaApiKeyRecord[]>([]);
+  const [savedApiKeyMetadata, setSavedApiKeyMetadata] = useState<UiMetaApiKeyRecord[]>([]);
+  const [apiKeyMetadataError, setApiKeyMetadataError] = useState('');
 
   // Search state
   const [searchQuery, setSearchQuery] = useState('');
@@ -94,11 +148,22 @@ export function ConfigPage() {
     setError('');
     try {
       const data = await configFileApi.fetchConfigYaml();
+      let metadata: UiMetaApiKeyRecord[] = [];
+      if (apiBase && managementKey) {
+        try {
+          metadata = await uiMetaApi.getKeyMetadata(apiBase, managementKey);
+        } catch {
+          metadata = [];
+        }
+      }
       setContent(data);
       setDirty(false);
       setDiffModalOpen(false);
       setServerYaml(data);
       setMergedYaml(data);
+      setApiKeyMetadata(metadata);
+      setSavedApiKeyMetadata(metadata);
+      setApiKeyMetadataError('');
       loadVisualValuesFromYaml(data);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : t('notification.refresh_failed');
@@ -106,7 +171,7 @@ export function ConfigPage() {
     } finally {
       setLoading(false);
     }
-  }, [loadVisualValuesFromYaml, t]);
+  }, [apiBase, loadVisualValuesFromYaml, managementKey, t]);
 
   useEffect(() => {
     loadConfig();
@@ -132,11 +197,19 @@ export function ConfigPage() {
 
       await configFileApi.saveConfigYaml(mergedYaml);
       const latestContent = await configFileApi.fetchConfigYaml();
+      const reconciledMetadata = reconcileMetadataForKeys(
+        extractApiKeysFromYaml(latestContent),
+        apiKeyMetadata
+      );
+      await uiMetaApi.putKeyMetadata(apiBase, managementKey, reconciledMetadata);
       setDirty(false);
       setDiffModalOpen(false);
       setContent(latestContent);
       setServerYaml(latestContent);
       setMergedYaml(latestContent);
+      setApiKeyMetadata(reconciledMetadata);
+      setSavedApiKeyMetadata(reconciledMetadata);
+      setApiKeyMetadataError('');
       loadVisualValuesFromYaml(latestContent);
 
       // Keep the global config store in sync so sidebar / other pages reflect YAML changes immediately.
@@ -196,6 +269,28 @@ export function ConfigPage() {
       // In source mode, save exactly what the user edited. In visual mode, materialize visual changes into the latest YAML.
       const nextMergedYaml =
         activeTab === 'source' ? content : applyVisualChangesToYaml(latestServerYaml);
+      const candidateKeys =
+        activeTab === 'source'
+          ? extractApiKeysFromYaml(nextMergedYaml)
+          : visualValues.apiKeysText
+              .split('\n')
+              .map((item) => item.trim())
+              .filter(Boolean);
+      const missingMetadataKeys = candidateKeys.filter((key) => {
+        const record = apiKeyMetadata.find((item) => item.key === key);
+        return !record || !record.alias.trim() || !record.owner.trim();
+      });
+      if (missingMetadataKeys.length > 0) {
+        const message = t('api_key_metadata.missing_for_keys', {
+          keys: missingMetadataKeys.join(', '),
+        });
+        setApiKeyMetadataError(message);
+        showNotification(message, 'error');
+        return;
+      }
+      setApiKeyMetadataError('');
+      const reconciledMetadata = reconcileMetadataForKeys(candidateKeys, apiKeyMetadata);
+      const savedReconciledMetadata = reconcileMetadataForKeys(candidateKeys, savedApiKeyMetadata);
 
       // In visual mode, applyVisualChangesToYaml re-serializes YAML via parseDocument → toString,
       // which may reformat comments/whitespace. Normalize the server YAML through the same pipeline
@@ -211,6 +306,19 @@ export function ConfigPage() {
       }
 
       if (diffOriginal === nextMergedYaml) {
+        const metadataChanged =
+          JSON.stringify(reconciledMetadata) !== JSON.stringify(savedReconciledMetadata);
+        if (metadataChanged) {
+          const persistedMetadata = await uiMetaApi.putKeyMetadata(
+            apiBase,
+            managementKey,
+            reconciledMetadata
+          );
+          setApiKeyMetadata(persistedMetadata);
+          setSavedApiKeyMetadata(persistedMetadata);
+          showNotification(t('config_management.save_success'), 'success');
+          return;
+        }
         setDirty(false);
         setContent(latestServerYaml);
         setServerYaml(latestServerYaml);
@@ -553,10 +661,16 @@ export function ConfigPage() {
           {activeTab === 'visual' ? (
             <VisualConfigEditor
               values={visualValues}
+              keyMetadata={apiKeyMetadata}
               validationErrors={visualValidationErrors}
               hasPayloadValidationErrors={visualHasPayloadValidationErrors}
               disabled={disableControls || loading}
+              apiKeyMetadataError={apiKeyMetadataError}
               onChange={setVisualValues}
+              onApiKeyMetadataChange={(records) => {
+                setApiKeyMetadata(records);
+                setApiKeyMetadataError('');
+              }}
             />
           ) : (
             <div className={styles.sourceWorkspace}>

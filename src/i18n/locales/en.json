@@ -116,6 +116,7 @@
     "oauth": "OAuth Login",
     "quota_management": "Quota Management",
     "usage_stats": "Usage Statistics",
+    "snake": "Snake",
     "config_management": "Config Panel",
     "logs": "Logs Viewer",
     "system_info": "Management Center Info"
@@ -1393,6 +1394,10 @@
     "link_webui_repo_desc": "Management Center frontend source code",
     "link_docs": "Documentation",
     "link_docs_desc": "Usage tutorials and configuration guides",
+    "debug_features_title": "Debug Features",
+    "debug_features_desc": "Toggle optional dashboard capabilities that remain hidden by default.",
+    "snake_toggle_desc": "Expose the hidden Snake tab while keeping the rest of the dashboard unchanged.",
+    "snake_toggle_saved": "Debug feature flags updated",
     "clear_login_title": "Local Login Data",
     "clear_login_desc": "Clear locally saved login data and sign out. Usage stats pricing settings will remain untouched.",
     "clear_login_button": "Clear login data",
@@ -1465,6 +1470,49 @@
     "commercial_mode_restart_required": "Commercial mode setting changed. Please restart the service for it to take effect",
     "copy_failed": "Copy failed",
     "link_copied": "Link copied to clipboard"
+  },
+  "api_key_metadata": {
+    "alias": "Alias",
+    "owner": "Owner",
+    "active": "Active",
+    "retired": "Retired",
+    "missing": "Alias and owner are required for each public API key",
+    "missing_for_keys": "Alias and owner are required for: {{keys}}",
+    "alias_placeholder": "For example: hub.bozhi.ai",
+    "owner_placeholder": "For example: longbiaochen or www.example.com",
+    "owner_empty": "Unassigned"
+  },
+  "api_key_usage": {
+    "title": "Public API Key Usage",
+    "hint": "Usage is still recorded by raw key, but this view maps each key to a human-readable alias and owner.",
+    "filter_alias_placeholder": "Filter by alias",
+    "filter_owner_placeholder": "Filter by owner",
+    "filter_model": "Filter by model",
+    "filter_status": "Filter by status",
+    "sort_by": "Sort by",
+    "recent_request_at": "Last Request",
+    "models_count": "Models"
+  },
+  "auth_relationship": {
+    "title": "How Authentication Fits Together",
+    "intro": "These three sections represent different layers of the same proxy chain. Provider Settings define what the server can talk to, OAuth Login obtains credentials, and Auth Files are the credentials currently on disk and in use.",
+    "provider_title": "Provider Settings",
+    "provider_desc": "This is the global upstream capability layer. It defines which providers and routing options Janus can use.",
+    "oauth_title": "Login / Refresh Auth",
+    "oauth_desc": "This starts or refreshes the authorization flow. It is the process layer, not the credential itself.",
+    "auth_files_title": "Auth Files",
+    "auth_files_desc": "These files are the durable credentials on Janus. They are what the runtime actually reads when proxying ChatGPT/Codex traffic.",
+    "footer_prefix": "Current Janus ChatGPT/Codex traffic is backed by",
+    "footer_suffix": "on the Janus host."
+  },
+  "snake": {
+    "title": "Snake",
+    "description": "A debug-only tab rendered in the same dashboard language. Use the arrow keys to move.",
+    "playground": "Playground",
+    "restart": "Restart",
+    "score": "Score",
+    "game_over": "Game over",
+    "running": "Running"
   },
   "language": {
     "switch": "Language",

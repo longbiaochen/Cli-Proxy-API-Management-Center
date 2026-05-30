@@ -16,6 +16,7 @@ import {
   withoutDisableAllModelsRule,
 } from '@/components/providers/utils';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
+import { AuthRelationshipCard } from '@/components/common/AuthRelationshipCard';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { ampcodeApi, providersApi } from '@/services/api';
 import { useAuthStore, useConfigStore, useNotificationStore, useThemeStore } from '@/stores';
@@ -369,6 +370,7 @@ export function AiProvidersPage() {
 
   return (
     <div className={styles.container}>
+      <AuthRelationshipCard />
       <h1 className={styles.pageTitle}>{t('ai_providers.title')}</h1>
       <div className={styles.content}>
         {error && <div className="error-box">{error}</div>}

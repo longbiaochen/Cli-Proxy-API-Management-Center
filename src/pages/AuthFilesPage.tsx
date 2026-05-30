@@ -16,6 +16,7 @@ import type { AnimationPlaybackControlsWithThen } from 'motion-dom';
 import { useInterval } from '@/hooks/useInterval';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
 import { usePageTransitionLayer } from '@/components/common/PageTransitionLayer';
+import { AuthRelationshipCard } from '@/components/common/AuthRelationshipCard';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -644,6 +645,7 @@ export function AuthFilesPage() {
 
   return (
     <div className={styles.container}>
+      <AuthRelationshipCard />
       <div className={styles.pageHeader}>
         <h1 className={styles.pageTitle}>{t('auth_files.title')}</h1>
         <p className={styles.description}>{t('auth_files.description')}</p>

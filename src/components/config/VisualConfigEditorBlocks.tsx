@@ -22,6 +22,7 @@ import {
 } from '@/hooks/useVisualConfig';
 import { maskApiKey } from '@/utils/format';
 import { isValidApiKeyCharset } from '@/utils/validation';
+import type { UiMetaApiKeyRecord } from '@/services/api/uiMeta';
 
 /** Minimum character count before the expand/collapse toggle appears. */
 const EXPAND_THRESHOLD = 30;
@@ -160,12 +161,18 @@ function buildProtocolOptions(
 
 export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   value,
+  metadata = [],
   disabled,
+  errorMessage,
   onChange,
+  onMetadataChange,
 }: {
   value: string;
+  metadata?: UiMetaApiKeyRecord[];
   disabled?: boolean;
+  errorMessage?: string;
   onChange: (nextValue: string) => void;
+  onMetadataChange?: (nextRecords: UiMetaApiKeyRecord[]) => void;
 }) {
   const { t } = useTranslation();
   const showNotification = useNotificationStore((state) => state.showNotification);
@@ -193,7 +200,14 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const [modalOpen, setModalOpen] = useState(false);
   const [editingApiKeyId, setEditingApiKeyId] = useState<string | null>(null);
   const [inputValue, setInputValue] = useState('');
+  const [aliasValue, setAliasValue] = useState('');
+  const [ownerValue, setOwnerValue] = useState('');
   const [formError, setFormError] = useState('');
+
+  const metadataByKey = useMemo(
+    () => new Map(metadata.filter((item) => item.key).map((item) => [item.key, item])),
+    [metadata]
+  );
 
   function generateSecureApiKey(): string {
     const charset = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -205,14 +219,20 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const openAddModal = () => {
     setEditingApiKeyId(null);
     setInputValue('');
+    setAliasValue('');
+    setOwnerValue('');
     setFormError('');
     setModalOpen(true);
   };
 
   const openEditModal = (apiKeyId: string) => {
     const editingIndex = renderApiKeyIds.findIndex((id) => id === apiKeyId);
+    const currentKey = apiKeys[editingIndex] ?? '';
+    const currentMetadata = metadataByKey.get(currentKey);
     setEditingApiKeyId(apiKeyId);
-    setInputValue(apiKeys[editingIndex] ?? '');
+    setInputValue(currentKey);
+    setAliasValue(currentMetadata?.alias ?? '');
+    setOwnerValue(currentMetadata?.owner ?? '');
     setFormError('');
     setModalOpen(true);
   };
@@ -220,6 +240,8 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
   const closeModal = () => {
     setModalOpen(false);
     setInputValue('');
+    setAliasValue('');
+    setOwnerValue('');
     setEditingApiKeyId(null);
     setFormError('');
   };
@@ -245,6 +267,10 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       setFormError(t('config_management.visual.api_keys.error_invalid'));
       return;
     }
+    if (!aliasValue.trim() || !ownerValue.trim()) {
+      setFormError(t('api_key_metadata.missing'));
+      return;
+    }
 
     const editingIndex = editingApiKeyId
       ? renderApiKeyIds.findIndex((id) => id === editingApiKeyId)
@@ -257,6 +283,30 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       setApiKeyIds([...renderApiKeyIds, makeClientId()]);
     }
     updateApiKeys(nextKeys);
+    const currentKey =
+      editingApiKeyId === null ? '' : apiKeys[editingIndex] ?? '';
+    const nextRecord: UiMetaApiKeyRecord = {
+      key: trimmed,
+      alias: aliasValue.trim(),
+      owner: ownerValue.trim(),
+      active: true,
+    };
+    if (onMetadataChange) {
+      const nextRecords = [...metadata];
+      const nextIndex = nextRecords.findIndex((record) => record.key === trimmed);
+      if (nextIndex >= 0) {
+        nextRecords[nextIndex] = { ...nextRecords[nextIndex], ...nextRecord, active: true };
+      } else {
+        nextRecords.push(nextRecord);
+      }
+      if (currentKey && currentKey !== trimmed) {
+        const previousIndex = nextRecords.findIndex((record) => record.key === currentKey);
+        if (previousIndex >= 0) {
+          nextRecords[previousIndex] = { ...nextRecords[previousIndex], active: false };
+        }
+      }
+      onMetadataChange(nextRecords);
+    }
     closeModal();
   };
 
@@ -291,9 +341,12 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
               <div className="item-meta">
                 <div className="pill">#{index + 1}</div>
                 <div className="item-title">
-                  {t('config_management.visual.api_keys.input_label')}
+                  {metadataByKey.get(key)?.alias || t('config_management.visual.api_keys.input_label')}
                 </div>
-                <div className="item-subtitle">{maskApiKey(String(key || ''))}</div>
+                <div className="item-subtitle">
+                  {(metadataByKey.get(key)?.owner || t('api_key_metadata.owner_empty'))}
+                </div>
+                <div className={styles.apiKeyMetaLine}>{maskApiKey(String(key || ''))}</div>
               </div>
               <div className="item-actions">
                 <Button
@@ -327,6 +380,7 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
       )}
 
       <div className="hint">{t('config_management.visual.api_keys.hint')}</div>
+      {errorMessage ? <div className="error-box">{errorMessage}</div> : null}
 
       <Modal
         open={modalOpen}
@@ -382,6 +436,26 @@ export const ApiKeysCardEditor = memo(function ApiKeysCardEditor({
               {formError}
             </div>
           )}
+        </div>
+        <div className="form-group">
+          <label>{t('api_key_metadata.alias')}</label>
+          <input
+            className="input"
+            placeholder={t('api_key_metadata.alias_placeholder')}
+            value={aliasValue}
+            onChange={(e) => setAliasValue(e.target.value)}
+            disabled={disabled}
+          />
+        </div>
+        <div className="form-group">
+          <label>{t('api_key_metadata.owner')}</label>
+          <input
+            className="input"
+            placeholder={t('api_key_metadata.owner_placeholder')}
+            value={ownerValue}
+            onChange={(e) => setOwnerValue(e.target.value)}
+            disabled={disabled}
+          />
         </div>
       </Modal>
     </div>

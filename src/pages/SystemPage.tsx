@@ -14,6 +14,7 @@ import {
 } from '@/stores';
 import { configApi, versionApi } from '@/services/api';
 import { apiKeysApi } from '@/services/api/apiKeys';
+import { uiMetaApi } from '@/services/api/uiMeta';
 import { classifyModels } from '@/utils/models';
 import { STORAGE_KEY_AUTH } from '@/utils/constants';
 import { INLINE_LOGO_JPEG } from '@/assets/logoInline';
@@ -92,6 +93,8 @@ export function SystemPage() {
   const [requestLogTouched, setRequestLogTouched] = useState(false);
   const [requestLogSaving, setRequestLogSaving] = useState(false);
   const [checkingVersion, setCheckingVersion] = useState(false);
+  const [snakeEnabled, setSnakeEnabled] = useState(false);
+  const [snakeSaving, setSnakeSaving] = useState(false);
 
   const apiKeysCache = useRef<string[]>([]);
   const versionTapCount = useRef(0);
@@ -281,6 +284,29 @@ export function SystemPage() {
     }
   };
 
+  const handleSnakeToggle = async (enabled: boolean) => {
+    if (!auth.apiBase || !auth.managementKey) return;
+    setSnakeSaving(true);
+    try {
+      const features = await uiMetaApi.putFeatures(auth.apiBase, auth.managementKey, {
+        snake_tab_enabled: enabled,
+      });
+      setSnakeEnabled(Boolean(features.snake_tab_enabled));
+      window.dispatchEvent(
+        new CustomEvent('ui-meta-features-updated', { detail: features })
+      );
+      showNotification(t('system_info.snake_toggle_saved'), 'success');
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : typeof error === 'string' ? error : '';
+      showNotification(
+        `${t('notification.update_failed')}${message ? `: ${message}` : ''}`,
+        'error'
+      );
+    } finally {
+      setSnakeSaving(false);
+    }
+  };
+
   const handleVersionCheck = useCallback(async () => {
     setCheckingVersion(true);
     try {
@@ -325,6 +351,14 @@ export function SystemPage() {
       setRequestLogDraft(requestLogEnabled);
     }
   }, [requestLogModalOpen, requestLogTouched, requestLogEnabled]);
+
+  useEffect(() => {
+    if (!auth.apiBase || !auth.managementKey) return;
+    uiMetaApi
+      .getFeatures(auth.apiBase, auth.managementKey)
+      .then((features) => setSnakeEnabled(Boolean(features.snake_tab_enabled)))
+      .catch(() => {});
+  }, [auth.apiBase, auth.managementKey]);
 
   useEffect(() => {
     return () => {
@@ -449,6 +483,27 @@ export function SystemPage() {
                 <div className={styles.linkDesc}>{t('system_info.link_docs_desc')}</div>
               </div>
             </a>
+          </div>
+        </Card>
+
+        <Card title={t('system_info.debug_features_title', { defaultValue: 'Debug Features' })}>
+          <p className={styles.sectionDescription}>
+            {t('system_info.debug_features_desc', {
+              defaultValue: 'Toggle optional dashboard capabilities that remain hidden by default.',
+            })}
+          </p>
+          <div className={styles.clearLoginActions}>
+            <div className={styles.linkDesc}>
+              {t('system_info.snake_toggle_desc', {
+                defaultValue: 'Expose the hidden Snake tab while keeping the rest of the dashboard unchanged.',
+              })}
+            </div>
+            <ToggleSwitch
+              checked={snakeEnabled}
+              onChange={(value) => void handleSnakeToggle(value)}
+              disabled={snakeSaving || auth.connectionStatus !== 'connected'}
+              ariaLabel={t('nav.snake', { defaultValue: 'Snake' })}
+            />
           </div>
         </Card>
 

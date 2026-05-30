@@ -1,0 +1,77 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.intro {
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+.boardWrap {
+  display: flex;
+  justify-content: center;
+}
+
+.board {
+  display: grid;
+  grid-template-columns: repeat(14, 22px);
+  gap: 4px;
+  padding: 18px;
+  border-radius: 24px;
+  border: 1px solid color-mix(in srgb, var(--border-color) 84%, transparent);
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--primary-color) 10%, transparent), transparent 40%),
+    color-mix(in srgb, var(--bg-secondary) 82%, transparent);
+}
+
+.cell {
+  width: 22px;
+  height: 22px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-primary) 88%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border-color) 76%, transparent);
+}
+
+.snake {
+  background: color-mix(in srgb, var(--primary-color) 64%, #111);
+  border-color: color-mix(in srgb, var(--primary-color) 86%, transparent);
+}
+
+.head {
+  background: var(--primary-color);
+  border-color: var(--primary-hover);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 24%, transparent);
+}
+
+.food {
+  background: #d6694f;
+  border-color: color-mix(in srgb, #d6694f 86%, transparent);
+}
+
+.status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.score {
+  font-weight: 700;
+}
+
+@media (max-width: 640px) {
+  .board {
+    grid-template-columns: repeat(14, 18px);
+    gap: 3px;
+    padding: 14px;
+  }
+
+  .cell {
+    width: 18px;
+    height: 18px;
+    border-radius: 6px;
+  }
+}

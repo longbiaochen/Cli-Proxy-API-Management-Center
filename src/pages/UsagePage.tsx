@@ -16,8 +16,9 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Select } from '@/components/ui/Select';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { useHeaderRefresh } from '@/hooks/useHeaderRefresh';
-import { useThemeStore, useConfigStore } from '@/stores';
+import { useAuthStore, useThemeStore, useConfigStore } from '@/stores';
 import {
+  ApiKeyUsageCard,
   StatCards,
   UsageChart,
   ChartLineSelector,
@@ -33,6 +34,7 @@ import {
   useSparklines,
   useChartData
 } from '@/components/usage';
+import { uiMetaApi, type UiMetaUsageEntry } from '@/services/api';
 import {
   getModelNamesFromUsage,
   getApiStats,
@@ -121,6 +123,10 @@ export function UsagePage() {
   const resolvedTheme = useThemeStore((state) => state.resolvedTheme);
   const isDark = resolvedTheme === 'dark';
   const config = useConfigStore((state) => state.config);
+  const apiBase = useAuthStore((state) => state.apiBase);
+  const managementKey = useAuthStore((state) => state.managementKey);
+  const [usageByKey, setUsageByKey] = useState<UiMetaUsageEntry[]>([]);
+  const [usageByKeyLoading, setUsageByKeyLoading] = useState(true);
 
   // Data hook
   const {
@@ -138,8 +144,50 @@ export function UsagePage() {
     exporting,
     importing
   } = useUsageData();
+  const usageRefreshKey = lastRefreshedAt?.getTime() ?? 0;
 
   useHeaderRefresh(loadUsage);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!apiBase || !managementKey) {
+      Promise.resolve().then(() => {
+        if (!cancelled) {
+          setUsageByKey([]);
+          setUsageByKeyLoading(false);
+        }
+      });
+      return;
+    }
+
+    Promise.resolve().then(() => {
+      if (!cancelled) {
+        setUsageByKeyLoading(true);
+      }
+    });
+    uiMetaApi
+      .getUsageByKey(apiBase, managementKey)
+      .then((response) => {
+        if (!cancelled) {
+          setUsageByKey(response.entries || []);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setUsageByKey([]);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setUsageByKeyLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [apiBase, managementKey, usageRefreshKey]);
 
   // Chart lines state
   const [chartLines, setChartLines] = useState<string[]>(loadChartLines);
@@ -304,6 +352,8 @@ export function UsagePage() {
           cost: costSparkline
         }}
       />
+
+      <ApiKeyUsageCard entries={usageByKey} loading={usageByKeyLoading} />
 
       {/* Chart Line Selection */}
       <ChartLineSelector

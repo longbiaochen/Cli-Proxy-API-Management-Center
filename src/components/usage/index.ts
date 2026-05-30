@@ -21,6 +21,8 @@ export type { ChartLineSelectorProps } from './ChartLineSelector';
 export { ApiDetailsCard } from './ApiDetailsCard';
 export type { ApiDetailsCardProps } from './ApiDetailsCard';
 
+export { ApiKeyUsageCard } from './ApiKeyUsageCard';
+
 export { ModelStatsCard } from './ModelStatsCard';
 export type { ModelStatsCardProps, ModelStat } from './ModelStatsCard';
 

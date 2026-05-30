@@ -116,6 +116,7 @@
     "oauth": "OAuth 登录",
     "quota_management": "配额管理",
     "usage_stats": "使用统计",
+    "snake": "贪吃蛇",
     "config_management": "配置面板",
     "logs": "日志查看",
     "system_info": "中心信息"
@@ -1393,6 +1394,10 @@
     "link_webui_repo_desc": "管理中心前端界面源代码",
     "link_docs": "使用教程",
     "link_docs_desc": "配置指南和使用说明",
+    "debug_features_title": "调试功能",
+    "debug_features_desc": "控制默认隐藏的调试型后台能力。",
+    "snake_toggle_desc": "显示隐藏的 Snake tab，同时不影响其他后台功能。",
+    "snake_toggle_saved": "调试功能开关已更新",
     "clear_login_title": "本地登录信息",
     "clear_login_desc": "清理本地保存的登录信息并退出登录，不会影响使用统计中的价格设置。",
     "clear_login_button": "清理登录信息",
@@ -1465,6 +1470,49 @@
     "commercial_mode_restart_required": "商业模式开关已变更，请重启服务后生效",
     "copy_failed": "复制失败",
     "link_copied": "已复制"
+  },
+  "api_key_metadata": {
+    "alias": "别名",
+    "owner": "归属人",
+    "active": "启用中",
+    "retired": "已退役",
+    "missing": "每一把公开 API key 都必须填写别名和归属人",
+    "missing_for_keys": "以下 key 缺少别名或归属人：{{keys}}",
+    "alias_placeholder": "例如：hub.bozhi.ai",
+    "owner_placeholder": "例如：longbiaochen 或 www.example.com",
+    "owner_empty": "未分配"
+  },
+  "api_key_usage": {
+    "title": "公开 API Key 使用量",
+    "hint": "底层统计仍然按原始 key 记账，这个视图只是把它映射成可读的别名和归属人。",
+    "filter_alias_placeholder": "按别名筛选",
+    "filter_owner_placeholder": "按归属人筛选",
+    "filter_model": "按模型筛选",
+    "filter_status": "按状态筛选",
+    "sort_by": "排序方式",
+    "recent_request_at": "最近请求时间",
+    "models_count": "模型数"
+  },
+  "auth_relationship": {
+    "title": "认证关系说明",
+    "intro": "这三个页面分别代表同一条代理链路的不同层次。Provider Settings 定义 Janus 能接什么上游，OAuth Login 负责拿授权，Auth Files 则是最终真正落盘并参与运行的凭据。",
+    "provider_title": "Provider Settings",
+    "provider_desc": "这是全局上游能力配置层，用来定义 Janus 支持哪些 provider 和路由能力。",
+    "oauth_title": "Login / Refresh Auth",
+    "oauth_desc": "这是拿授权或刷新授权的流程入口，本身不是最终会被运行时直接读取的凭据。",
+    "auth_files_title": "Auth Files",
+    "auth_files_desc": "这些文件才是 Janus 本机上实际落盘并被运行时读取的授权材料，用于代理 ChatGPT/Codex 流量。",
+    "footer_prefix": "当前 Janus 的 ChatGPT/Codex 代理实际依赖的文件是",
+    "footer_suffix": "，它保存在 Janus 主机上。"
+  },
+  "snake": {
+    "title": "贪吃蛇",
+    "description": "一个只用于调试的 tab，沿用同一套后台风格。用方向键控制。",
+    "playground": "游戏区",
+    "restart": "重开",
+    "score": "得分",
+    "game_over": "游戏结束",
+    "running": "进行中"
   },
   "language": {
     "switch": "语言",

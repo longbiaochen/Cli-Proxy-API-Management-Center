@@ -37,6 +37,7 @@ import type {
   VisualConfigValidationErrors,
   VisualConfigValues,
 } from '@/types/visualConfig';
+import type { UiMetaApiKeyRecord } from '@/services/api/uiMeta';
 import {
   ApiKeysCardEditor,
   PayloadFilterRulesEditor,
@@ -65,10 +66,13 @@ type VisualSection = {
 
 interface VisualConfigEditorProps {
   values: VisualConfigValues;
+  keyMetadata?: UiMetaApiKeyRecord[];
   validationErrors?: VisualConfigValidationErrors;
   hasPayloadValidationErrors?: boolean;
   disabled?: boolean;
+  apiKeyMetadataError?: string;
   onChange: (values: Partial<VisualConfigValues>) => void;
+  onApiKeyMetadataChange?: (records: UiMetaApiKeyRecord[]) => void;
 }
 
 function getValidationMessage(
@@ -172,10 +176,13 @@ function FieldShell({
 
 export function VisualConfigEditor({
   values,
+  keyMetadata = [],
   validationErrors,
   hasPayloadValidationErrors = false,
   disabled = false,
+  apiKeyMetadataError,
   onChange,
+  onApiKeyMetadataChange,
 }: VisualConfigEditorProps) {
   const { t } = useTranslation();
   const pageTransitionLayer = usePageTransitionLayer();
@@ -749,8 +756,11 @@ export function VisualConfigEditor({
               <div className={styles.subsection}>
                 <ApiKeysCardEditor
                   value={values.apiKeysText}
+                  metadata={keyMetadata}
                   disabled={disabled}
+                  errorMessage={apiKeyMetadataError}
                   onChange={handleApiKeysTextChange}
+                  onMetadataChange={onApiKeyMetadataChange}
                 />
               </div>
             </SectionStack>
